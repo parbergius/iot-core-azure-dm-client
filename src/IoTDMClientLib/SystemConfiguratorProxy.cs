@@ -41,7 +41,7 @@ namespace Microsoft.Devices.Management
             processLauncherOptions.StandardError = null;
             processLauncherOptions.StandardInput = standardInput.GetInputStreamAt(0);
 
-            await command.Serialize().WriteToIOutputStreamAsync(standardInput);
+            await command.Serialize().WriteToIOutputStreamAsync(standardInput);            
 
             standardInput.Dispose();
 
@@ -51,6 +51,7 @@ namespace Microsoft.Devices.Management
                 using (var outStreamRedirect = standardOutput.GetInputStreamAt(0))
                 {
                     var response = (await Blob.ReadFromIInputStreamAsync(outStreamRedirect)).MakeIResponse();
+
                     if (response.Status != ResponseStatus.Success)
                     {
                         var stringResponse = response as StringResponse;

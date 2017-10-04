@@ -81,11 +81,11 @@ wstring CustomDeviceUiCSP::GetBackgroundTasksToLaunch()
     // use std::function to pass lambda that captures something
     std::function<void(std::vector<std::wstring>&, std::wstring&)> valueHandler =
         [data](vector<wstring>& uriTokens, wstring& /*value*/) {
-        if (uriTokens.size() == 6)
+        if (uriTokens.size() == 6)		
         {
             // 0/__1___/__2__/____3________/___________4___________/___5_
             // ./Vendor/MSFT/CustomDeviceUI/BackgroundTaskstoLaunch/Aumid
-            auto aumid = ref new Platform::String(uriTokens[5].c_str());
+            auto aumid = ref new Platform::String(uriTokens[5].c_str());			
             data->Append(JsonValue::CreateStringValue(aumid));
         }
     };

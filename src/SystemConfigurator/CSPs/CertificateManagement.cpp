@@ -39,7 +39,8 @@ void CertificateManagement::SyncCertificates(const std::wstring& path, const std
     vector<CertificateFileInfo> desiredCertificates;
     for (const wstring& desiredCertificateFile : desiredCertificateFilesVector)
     {
-        wstring fullFileName = wstring(SC_CLEANUP_FOLDER) + L"\\" + desiredCertificateFile;
+        //wstring fullFileName = wstring(SC_CLEANUP_FOLDER) + L"\\" + desiredCertificateFile;
+		wstring fullFileName = wstring(SC_CLEANUP_FOLDER) + desiredCertificateFile;
         TRACEP(L"Reading: ", fullFileName.c_str());
         desiredCertificates.push_back(CertificateFileInfo(fullFileName));
     }

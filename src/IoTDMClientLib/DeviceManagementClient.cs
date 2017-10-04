@@ -70,6 +70,10 @@ namespace Microsoft.Devices.Management
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.startAppSelfUpdate", deviceManagementClient.StartAppSelfUpdateMethodHandlerAsync);
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.getCertificateDetails", deviceManagementClient.GetCertificateDetailsHandlerAsync);
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.factoryReset", deviceManagementClient.FactoryResetHandlerAsync);
+            await deviceTwin.SetMethodHandlerAsync("microsoft.management.getStartupForegroundApp", deviceManagementClient.GetStartupForegroundAppHandlerAsync);
+            await deviceTwin.SetMethodHandlerAsync("microsoft.management.listStartupBackgroundApps", deviceManagementClient.ListStartupBackgroundAppsHandlerAsync);
+            await deviceTwin.SetMethodHandlerAsync("microsoft.management.addStartupApp", deviceManagementClient.AddStartupAppHandlerAsync);
+            await deviceTwin.SetMethodHandlerAsync("microsoft.management.listApps", deviceManagementClient.ListAppsHandlerAsync);
             return deviceManagementClient;
         }
 
@@ -98,6 +102,41 @@ namespace Microsoft.Devices.Management
             var result = await this._systemConfiguratorProxy.SendCommandAsync(request);
         }
 
+        internal async Task<string> ListAppsHandlerAsync(string jsonParam)
+        {
+            var request = new Message.ListAppsRequest();
+            var result = await this._systemConfiguratorProxy.SendCommandAsync(request) as Message.ListAppsResponse;
+            
+            // Fix: result.Apps was not serialized by default.
+            var response = JsonConvert.SerializeObject(new
+            {
+                Apps = result.Apps.Select(app =>
+                    new KeyValuePair<string, object>(app.Key,
+                        new
+                        {
+                            AppSource = app.Value.AppSource,
+                            Architecture = app.Value.Architecture,
+                            //InstallDate = app.Value.InstallDate,
+                            //InstallLocation = app.Value.InstallLocation,
+                            //IsBundle = app.Value.IsBundle,
+                            //IsFramework = app.Value.IsFramework,
+                            //IsProvisioned = app.Value.IsProvisioned,
+                            Name = app.Value.Name,
+                            PackageFamilyName = app.Value.PackageFamilyName,
+                            //PackageStatus = app.Value.PackageStatus,
+                            //Publisher = app.Value.Publisher,
+                            //RequiresReinstall = app.Value.RequiresReinstall,
+                            //ResourceID = app.Value.ResourceID,
+                            //Users = app.Value.Users,
+                            Version = app.Value.Version
+                        })),
+                Status = result.Status,
+                Tag = result.Tag
+            });
+
+            return response;
+        }
+
         internal async Task<IDictionary<string, Message.AppInfo>> ListAppsAsync()
         {
             var request = new Message.ListAppsRequest();
@@ -105,23 +144,22 @@ namespace Microsoft.Devices.Management
             return (result as Message.ListAppsResponse).Apps;
         }
 
-        internal Task<string> AppInstallMethodHandlerAsync(string jsonParam)
+        internal async Task<string> AppInstallMethodHandlerAsync(string jsonParam)
         {
             try
             {
                 // method should return immediately .. only validate the json param
                 var appBlobInfo = JsonConvert.DeserializeObject<IoTDMClient.AppBlobInfo>(jsonParam);
                 // task should run without blocking so resonse can be generated right away
-                var appInstallTask = appBlobInfo.AppInstallAsync(this);
-                // response with success
-                var response = JsonConvert.SerializeObject(new { response = "accepted" });
-                return Task.FromResult(response);
+                var response = await appBlobInfo.AppInstallAsync(this);
+                
+                return response;
             }
             catch (Exception e)
             {
                 // response with failure
                 var response = JsonConvert.SerializeObject(new { response = "rejected", reason = e.Message });
-                return Task.FromResult(response);
+                return response; // Task.FromResult(response);
             }
         }
 
@@ -135,6 +173,30 @@ namespace Microsoft.Devices.Management
         {
             var request = new Message.AppUninstallRequest(appUninstallInfo);
             await this._systemConfiguratorProxy.SendCommandAsync(request);
+        }
+
+        internal async Task<string> ListStartupBackgroundAppsHandlerAsync(string jsonParam)
+        {
+            var request = new Message.ListStartupBackgroundAppsRequest();
+            var result = await this._systemConfiguratorProxy.SendCommandAsync(request) as Message.ListStartupBackgroundAppsResponse;
+
+            var response = JsonConvert.SerializeObject(new
+            {
+                StartupBackgroundApps = result.StartupBackgroundApps.Select(app => app),
+                Status = result.Status,
+                Tag = result.Tag
+            });
+            
+            return response;
+        }
+
+        internal async Task<string> GetStartupForegroundAppHandlerAsync(string jsonParam)
+        {
+            var request = new Message.GetStartupForegroundAppRequest();
+            var result = await this._systemConfiguratorProxy.SendCommandAsync(request) as Message.GetStartupForegroundAppResponse;               
+            
+            var response = JsonConvert.SerializeObject(result);
+            return response;
         }
 
         internal async Task<string> GetStartupForegroundAppAsync()
@@ -254,6 +316,22 @@ namespace Microsoft.Devices.Management
             // Start the reboot operation asynchrnously, which may or may not succeed
             this.ImmediateRebootAsync(rebootCmdTime);
             return JsonConvert.SerializeObject(new { response = "accepted" });
+        }
+
+        private async Task<string> AddStartupAppHandlerAsync(string jsonParam)
+        {
+            try
+            {
+                var startupAppInfo = JsonConvert.DeserializeObject<Message.StartupAppInfo>(jsonParam);
+                await this.AddStartupAppAsync(startupAppInfo);
+                return JsonConvert.SerializeObject(new { response = "accepted" });
+            }
+            catch (Exception e)
+            {
+                // response with failure
+                return JsonConvert.SerializeObject(new { response = "rejected", reason = e.Message });                
+            }
+
         }
 
         public async Task ImmediateRebootAsync()
@@ -377,7 +455,7 @@ namespace Microsoft.Devices.Management
                 // Submit the work and return immediately.
                 GetCertificateDetailsAsync(jsonParam);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 response = new { response = "rejected:", reason = e.Message };
             }
@@ -547,7 +625,7 @@ namespace Microsoft.Devices.Management
                         }
                     }
                 }
-             }
+            }
 
             // Need to keep this until externalStorage is processed.
             // ToDo: The client does not get a full copy of the device twin when it first connects! (regression?)
@@ -631,7 +709,7 @@ namespace Microsoft.Devices.Management
         {
             Debug.WriteLine("ReportAllDevicePropertiesMethodHandler");
 
-            ReportAllDeviceProperties();
+            await ReportAllDeviceProperties();
 
             return JsonConvert.SerializeObject(new { response = "success" });
         }

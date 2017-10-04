@@ -124,9 +124,13 @@ namespace Utils
 
     void ReadXmlStructData(IStream* resultSyncML, ELEMENT_HANDLER handler)
     {
-        wstring uriPath = L"Root\\Results\\Item\\Source\\LocURI\\";
+        /*wstring uriPath = L"Root\\Results\\Item\\Source\\LocURI\\";
         wstring dataPath = L"Root\\Results\\Item\\Data\\";
-        wstring itemPath = L"Root\\Results\\Item\\";
+        wstring itemPath = L"Root\\Results\\Item\\"; */
+
+		wstring uriPath =  L"SyncML\\SyncBody\\Results\\Item\\Source\\LocURI\\";
+		wstring dataPath = L"SyncML\\SyncBody\\Results\\Item\\Data\\";
+		wstring itemPath = L"SyncML\\SyncBody\\Results\\Item\\";
 
         wstring emptyString = L"";
         auto value = emptyString;
