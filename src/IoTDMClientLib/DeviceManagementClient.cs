@@ -70,6 +70,7 @@ namespace Microsoft.Devices.Management
             DeviceManagementClient deviceManagementClient = Create(deviceTwin, requestHandler, new SystemConfiguratorProxy(), new IotStartupProxy(), new DevicePortalCoreApiProxy());
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.immediateReboot", deviceManagementClient.ImmediateRebootMethodHandlerAsync);
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.appInstall", deviceManagementClient.AppInstallMethodHandlerAsync);
+            await deviceTwin.SetMethodHandlerAsync("microsoft.management.appUninstall", deviceManagementClient.AppUninstallMethodHandlerAsync);
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.reportAllDeviceProperties", deviceManagementClient.ReportAllDevicePropertiesMethodHandler);
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.startAppSelfUpdate", deviceManagementClient.StartAppSelfUpdateMethodHandlerAsync);
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.getCertificateDetails", deviceManagementClient.GetCertificateDetailsHandlerAsync);
@@ -164,7 +165,7 @@ namespace Microsoft.Devices.Management
             var result = await this._systemConfiguratorProxy.SendCommandAsync(request);
             return (result as Message.ListAppsResponse).Apps;
         }
-
+        
         internal async Task<string> AppInstallMethodHandlerAsync(string jsonParam)
         {
             try
@@ -188,6 +189,24 @@ namespace Microsoft.Devices.Management
         {
             var request = new Message.AppInstallRequest(appInstallInfo);
             await this._systemConfiguratorProxy.SendCommandAsync(request);
+        }
+
+        internal async Task<string> AppUninstallMethodHandlerAsync(string jsonParam)
+        {
+            try
+            {
+                var appUninstallInfo = JsonConvert.DeserializeObject<Message.AppUninstallInfo>(jsonParam);
+                await UninstallAppAsync(appUninstallInfo);
+
+                var response = JsonConvert.SerializeObject(new { response = "succeeded" });
+                return response;
+            }
+            catch (Exception e)
+            {
+                // response with failure
+                var response = JsonConvert.SerializeObject(new { response = "rejected", reason = e.Message });
+                return response;
+            }
         }
 
         internal async Task UninstallAppAsync(Message.AppUninstallInfo appUninstallInfo)
