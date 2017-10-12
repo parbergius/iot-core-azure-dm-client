@@ -23,6 +23,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Windows.Foundation;
+using Windows.Management.Deployment;
 using Windows.Services.Store;
 using Windows.Storage;
 
@@ -53,17 +54,20 @@ namespace Microsoft.Devices.Management
             public string blobName;
         }
 
-        private DeviceManagementClient(IDeviceTwin deviceTwin, IDeviceManagementRequestHandler requestHandler, ISystemConfiguratorProxy systemConfiguratorProxy)
+        private DeviceManagementClient(IDeviceTwin deviceTwin, IDeviceManagementRequestHandler requestHandler,
+            ISystemConfiguratorProxy systemConfiguratorProxy, IIotStartupProxy iotStartupProxy, IDevicePortalCoreApiProxy devicePortalCoreApiProxy)
         {
             this._deviceTwin = deviceTwin;
             this._requestHandler = requestHandler;
             this._systemConfiguratorProxy = systemConfiguratorProxy;
+            this._iotStartupProxy = iotStartupProxy;
+            this._devicePortalCoreApiProxy = devicePortalCoreApiProxy;
             this._externalStorage = new ExternalStorage();
         }
 
         public static async Task<DeviceManagementClient> CreateAsync(IDeviceTwin deviceTwin, IDeviceManagementRequestHandler requestHandler)
         {
-            DeviceManagementClient deviceManagementClient = Create(deviceTwin, requestHandler, new SystemConfiguratorProxy());
+            DeviceManagementClient deviceManagementClient = Create(deviceTwin, requestHandler, new SystemConfiguratorProxy(), new IotStartupProxy(), new DevicePortalCoreApiProxy());
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.immediateReboot", deviceManagementClient.ImmediateRebootMethodHandlerAsync);
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.appInstall", deviceManagementClient.AppInstallMethodHandlerAsync);
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.reportAllDeviceProperties", deviceManagementClient.ReportAllDevicePropertiesMethodHandler);
@@ -77,9 +81,10 @@ namespace Microsoft.Devices.Management
             return deviceManagementClient;
         }
 
-        internal static DeviceManagementClient Create(IDeviceTwin deviceTwin, IDeviceManagementRequestHandler requestHandler, ISystemConfiguratorProxy systemConfiguratorProxy)
+        internal static DeviceManagementClient Create(IDeviceTwin deviceTwin, IDeviceManagementRequestHandler requestHandler,
+            ISystemConfiguratorProxy systemConfiguratorProxy, IIotStartupProxy iotStartupProxy, IDevicePortalCoreApiProxy devicePortalCoreApiProxy)
         {
-            return new DeviceManagementClient(deviceTwin, requestHandler, systemConfiguratorProxy);
+            return new DeviceManagementClient(deviceTwin, requestHandler, systemConfiguratorProxy, iotStartupProxy, devicePortalCoreApiProxy);
         }
 
         //
@@ -104,34 +109,50 @@ namespace Microsoft.Devices.Management
 
         internal async Task<string> ListAppsHandlerAsync(string jsonParam)
         {
-            var request = new Message.ListAppsRequest();
-            var result = await this._systemConfiguratorProxy.SendCommandAsync(request) as Message.ListAppsResponse;
+            var getAppsTask = this._iotStartupProxy.SendCommandAsync(IotStartupCommands.List);
+            var getStartupsTask = this._iotStartupProxy.SendCommandAsync(IotStartupCommands.Startup);
+            var getAppDetailsTask = this._systemConfiguratorProxy.SendCommandAsync(new Message.ListAppsRequest());
+            var getProcessesTask = this._devicePortalCoreApiProxy.GetModernApplicationProcesses();
+
+            // Wait for all tasks to complete!
+            await Task.WhenAll(getAppsTask, getStartupsTask, getAppDetailsTask, getProcessesTask);
+
+            // Get reults
+            var apps = getAppsTask.Result;
+            var startups = getStartupsTask.Result;
+            var appDetails = getAppDetailsTask.Result as Message.ListAppsResponse;
+            var processes = getProcessesTask.Result;
+
+            Func<string, AppInfo> getAppInfoByEntryPoint = (entryPoint) =>
+            {
+                var app = appDetails.Apps.FirstOrDefault(ad => entryPoint.StartsWith($"{ad.Value.PackageFamilyName}!"));
+                return app.Value;
+            };
+
+            Func<string, Models.Process> getProcessEntryPoint = (entryPoint) =>
+            {
+                var proc = processes.FirstOrDefault(p => p.PackageFullName.StartsWith(getAppInfoByEntryPoint(entryPoint).Name));
+                return proc;
+            };
             
-            // Fix: result.Apps was not serialized by default.
             var response = JsonConvert.SerializeObject(new
             {
-                Apps = result.Apps.Select(app =>
-                    new KeyValuePair<string, object>(app.Key,
+                Apps = apps
+                    .Select(app =>
                         new
                         {
-                            AppSource = app.Value.AppSource,
-                            Architecture = app.Value.Architecture,
-                            //InstallDate = app.Value.InstallDate,
-                            //InstallLocation = app.Value.InstallLocation,
-                            //IsBundle = app.Value.IsBundle,
-                            //IsFramework = app.Value.IsFramework,
-                            //IsProvisioned = app.Value.IsProvisioned,
-                            Name = app.Value.Name,
-                            PackageFamilyName = app.Value.PackageFamilyName,
-                            //PackageStatus = app.Value.PackageStatus,
-                            //Publisher = app.Value.Publisher,
-                            //RequiresReinstall = app.Value.RequiresReinstall,
-                            //ResourceID = app.Value.ResourceID,
-                            //Users = app.Value.Users,
-                            Version = app.Value.Version
-                        })),
-                Status = result.Status,
-                Tag = result.Tag
+                            EntryPoint = app.Key,
+                            Type = app.Value == ApplicationTypes.Headed ? "Foreground" : "Background",
+                            IsStartup = startups.ContainsKey(app.Key),                            
+                            Name = getAppInfoByEntryPoint(app.Key).Name,                            
+                            PackageFamilyName = getAppInfoByEntryPoint(app.Key).PackageFamilyName,
+                            Version = getAppInfoByEntryPoint(app.Key).Version,
+                            IsRunning = getProcessEntryPoint(app.Key) != null,
+                            ProcessId = getProcessEntryPoint(app.Key)?.ProcessId,
+
+                        }),
+                Status = appDetails.Status,
+                Tag = appDetails.Tag
             });
 
             return response;
@@ -152,7 +173,7 @@ namespace Microsoft.Devices.Management
                 var appBlobInfo = JsonConvert.DeserializeObject<IoTDMClient.AppBlobInfo>(jsonParam);
                 // task should run without blocking so resonse can be generated right away
                 var response = await appBlobInfo.AppInstallAsync(this);
-                
+
                 return response;
             }
             catch (Exception e)
@@ -186,15 +207,15 @@ namespace Microsoft.Devices.Management
                 Status = result.Status,
                 Tag = result.Tag
             });
-            
+
             return response;
         }
 
         internal async Task<string> GetStartupForegroundAppHandlerAsync(string jsonParam)
         {
             var request = new Message.GetStartupForegroundAppRequest();
-            var result = await this._systemConfiguratorProxy.SendCommandAsync(request) as Message.GetStartupForegroundAppResponse;               
-            
+            var result = await this._systemConfiguratorProxy.SendCommandAsync(request) as Message.GetStartupForegroundAppResponse;
+
             var response = JsonConvert.SerializeObject(result);
             return response;
         }
@@ -329,7 +350,7 @@ namespace Microsoft.Devices.Management
             catch (Exception e)
             {
                 // response with failure
-                return JsonConvert.SerializeObject(new { response = "rejected", reason = e.Message });                
+                return JsonConvert.SerializeObject(new { response = "rejected", reason = e.Message });
             }
 
         }
@@ -730,6 +751,8 @@ namespace Microsoft.Devices.Management
 
         // Data members
         ISystemConfiguratorProxy _systemConfiguratorProxy;
+        IIotStartupProxy _iotStartupProxy;
+        IDevicePortalCoreApiProxy _devicePortalCoreApiProxy;
         IDeviceManagementRequestHandler _requestHandler;
         IDeviceTwin _deviceTwin;
         ExternalStorage _externalStorage;

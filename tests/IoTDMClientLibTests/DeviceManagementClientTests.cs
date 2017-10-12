@@ -20,6 +20,7 @@ using System.Threading.Tasks;
 using Windows.Storage.Streams;
 
 using Microsoft.Devices.Management.Message;
+using Microsoft.Devices.Management.Models;
 
 namespace IoTDMClientLibTests
 {
@@ -94,6 +95,22 @@ namespace IoTDMClientLibTests
         public IResponse ReturnedResponse => this.response;
     }
 
+    class IotStartupProxyMockup : IIotStartupProxy
+    {
+        public Task<IDictionary<string, ApplicationTypes>> SendCommandAsync(IotStartupCommands command)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    class DevicePortalCoreApiProxyMockup : IDevicePortalCoreApiProxy
+    {
+        public Task<IList<Process>> GetModernApplicationProcesses()
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     [TestClass]
     public class DeviceManagementClientTests
     {
@@ -102,13 +119,16 @@ namespace IoTDMClientLibTests
         {
             var twin = new TwinMockup();
             var requestHandler = new HandlerMockupForReboot(true);
-            var proxy = new ConfigurationProxyMockup();
-            var dmClient = DeviceManagementClient.Create(twin, requestHandler, proxy);
+            var configProxy = new ConfigurationProxyMockup();
+            var iotStartupProxy = new IotStartupProxyMockup();
+            var deviceApi = new DevicePortalCoreApiProxyMockup();
+
+            var dmClient = DeviceManagementClient.Create(twin, requestHandler, configProxy, iotStartupProxy, deviceApi);
             dmClient.ImmediateRebootAsync().Wait();
 
-            Assert.AreEqual(proxy.ReceivedRequest.Tag, DMMessageKind.ImmediateReboot);
-            Assert.AreEqual(proxy.ReturnedResponse.Tag, DMMessageKind.ImmediateReboot);
-            Assert.AreEqual(proxy.ReturnedResponse.Status, ResponseStatus.Success);
+            Assert.AreEqual(configProxy.ReceivedRequest.Tag, DMMessageKind.ImmediateReboot);
+            Assert.AreEqual(configProxy.ReturnedResponse.Tag, DMMessageKind.ImmediateReboot);
+            Assert.AreEqual(configProxy.ReturnedResponse.Status, ResponseStatus.Success);
         }
 
         [TestMethod]
@@ -117,7 +137,10 @@ namespace IoTDMClientLibTests
             var twin = new TwinMockup();
             var requestHandler = new HandlerMockupForReboot(false);
             var proxy = new ConfigurationProxyMockup();
-            var dmClient = DeviceManagementClient.Create(twin, requestHandler, proxy);
+            var iotStartup = new IotStartupProxyMockup();
+            var deviceApi = new DevicePortalCoreApiProxyMockup();
+
+            var dmClient = DeviceManagementClient.Create(twin, requestHandler, proxy, iotStartup, deviceApi);
             dmClient.ImmediateRebootAsync().Wait();
 
             Assert.AreEqual(proxy.ReceivedRequest, null);
