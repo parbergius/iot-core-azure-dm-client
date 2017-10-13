@@ -12,6 +12,7 @@ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMA
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH 
 THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+using Microsoft.Azure.Devices.Shared;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -35,6 +36,11 @@ namespace Microsoft.Devices.Management
         }
 
         Task IDeviceTwin.SetMethodHandlerAsync(string methodName, Func<string, Task<string>> methodHandler)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<TwinCollection> GetDesiredPropertiesAsync()
         {
             throw new NotImplementedException();
         }

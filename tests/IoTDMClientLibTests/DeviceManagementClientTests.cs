@@ -21,11 +21,17 @@ using Windows.Storage.Streams;
 
 using Microsoft.Devices.Management.Message;
 using Microsoft.Devices.Management.Models;
+using Microsoft.Azure.Devices.Shared;
 
 namespace IoTDMClientLibTests
 {
     class TwinMockup : IDeviceTwin
     {
+        public Task<TwinCollection> GetDesiredPropertiesAsync()
+        {
+            throw new NotImplementedException();
+        }
+
         void IDeviceTwin.RefreshConnection()
         {
             throw new NotImplementedException();
@@ -95,9 +101,14 @@ namespace IoTDMClientLibTests
         public IResponse ReturnedResponse => this.response;
     }
 
-    class IotStartupProxyMockup : IIotStartupProxy
+    class ICommandLineProxyMockup : ICommandLineProxy
     {
-        public Task<IDictionary<string, ApplicationTypes>> SendCommandAsync(IotStartupCommands command)
+        public Task<string> ScreenCapture(string filename)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDictionary<string, ApplicationTypes>> IotStartup(IotStartupCommands command)
         {
             throw new NotImplementedException();
         }
@@ -120,10 +131,10 @@ namespace IoTDMClientLibTests
             var twin = new TwinMockup();
             var requestHandler = new HandlerMockupForReboot(true);
             var configProxy = new ConfigurationProxyMockup();
-            var iotStartupProxy = new IotStartupProxyMockup();
+            var commandLineProxy = new CommandLineProxy();
             var deviceApi = new DevicePortalCoreApiProxyMockup();
 
-            var dmClient = DeviceManagementClient.Create(twin, requestHandler, configProxy, iotStartupProxy, deviceApi);
+            var dmClient = DeviceManagementClient.Create(twin, requestHandler, configProxy, commandLineProxy, deviceApi);
             dmClient.ImmediateRebootAsync().Wait();
 
             Assert.AreEqual(configProxy.ReceivedRequest.Tag, DMMessageKind.ImmediateReboot);
@@ -137,10 +148,10 @@ namespace IoTDMClientLibTests
             var twin = new TwinMockup();
             var requestHandler = new HandlerMockupForReboot(false);
             var proxy = new ConfigurationProxyMockup();
-            var iotStartup = new IotStartupProxyMockup();
+            var commandLine = new CommandLineProxy();
             var deviceApi = new DevicePortalCoreApiProxyMockup();
 
-            var dmClient = DeviceManagementClient.Create(twin, requestHandler, proxy, iotStartup, deviceApi);
+            var dmClient = DeviceManagementClient.Create(twin, requestHandler, proxy, commandLine, deviceApi);
             dmClient.ImmediateRebootAsync().Wait();
 
             Assert.AreEqual(proxy.ReceivedRequest, null);

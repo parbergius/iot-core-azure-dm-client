@@ -19,8 +19,10 @@ namespace Microsoft.Devices.Management
         Startup
     }
 
-    internal interface IIotStartupProxy
+    internal interface ICommandLineProxy
     {
-        Task<IDictionary<string, ApplicationTypes>> SendCommandAsync(IotStartupCommands command);
+        Task<IDictionary<string, ApplicationTypes>> IotStartup(IotStartupCommands command);
+
+        Task<string> ScreenCapture(string filename);
     }
 }

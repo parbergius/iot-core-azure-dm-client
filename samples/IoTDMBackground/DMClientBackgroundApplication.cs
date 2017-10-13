@@ -41,6 +41,7 @@ namespace IoTDMBackground
     public sealed class DMClientBackgroundApplication : IBackgroundTask
     {
         private DeviceManagementClient _dmClient;
+        private ScreenCapture _scClient;
         private BackgroundTaskDeferral _deferral;
 
         private void LogError(string message, System.Exception exception)
@@ -77,6 +78,7 @@ namespace IoTDMBackground
             try
             {
                 string deviceConnectionString = await device.GetConnectionStringAsync();
+                string deviceId = await device.GetDeviceIdAsync();
 
                 // Create DeviceClient. Application uses DeviceClient for telemetry messages, device twin
                 // as well as device management
@@ -93,6 +95,9 @@ namespace IoTDMBackground
 
                 // Create the DeviceManagementClient, the main entry point into device management
                 _dmClient = await DeviceManagementClient.CreateAsync(deviceTwinProxy, appRequestHandler);
+
+                // Create the CaptureScreenClient 
+                _scClient = await ScreenCapture.CreateAsync(deviceTwinProxy, deviceId);
 
                 // Set the callback for desired properties update. The callback will be invoked
                 // for all desired properties -- including those specific to device management
@@ -111,6 +116,7 @@ namespace IoTDMBackground
             try
             {
                 _dmClient.ProcessDeviceManagementProperties(desiredProperties);
+                _scClient.UpdateConfiguration(desiredProperties);
             }
             catch (System.Exception ex)
             {

@@ -15,6 +15,7 @@ THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 using System.Collections.Generic;
 using System;
 using System.Threading.Tasks;
+using Microsoft.Azure.Devices.Shared;
 
 namespace Microsoft.Devices.Management
 {
@@ -27,6 +28,8 @@ namespace Microsoft.Devices.Management
         void ReportProperties(Dictionary<string, object> collection);
 
         Task SetMethodHandlerAsync(string methodName, Func<string, Task<string>> methodHandler);
+
+        Task<TwinCollection> GetDesiredPropertiesAsync();
 
         // This API is called when the connection has expired (such as when SAS token has expired)
         void RefreshConnection();

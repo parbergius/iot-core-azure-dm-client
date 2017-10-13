@@ -97,12 +97,13 @@
     <Compile Include="AppxManagement.cs" />
     <Compile Include="AzureBlobFileTransfer.cs" />
     <Compile Include="AzureIoTHubDeviceTwinProxy.cs" />
+    <Compile Include="ScreenCaptureClient.cs" />
     <Compile Include="CertificateManagement.cs" />
     <Compile Include="DeviceManagementClient.cs" />
     <Compile Include="DevicePortalCoreApiProxy.cs" />
     <Compile Include="IDevicePortalCoreApiProxy.cs" />
-    <Compile Include="IIotStartupProxy.cs" />
-    <Compile Include="IotStartupProxy.cs" />
+    <Compile Include="ICommandLineProxy.cs" />
+    <Compile Include="CommandLineProxy.cs" />
     <Compile Include="ISystemConfiguratorProxy.cs" />
     <Compile Include="Models\Process.cs" />
     <Compile Include="SystemConfiguratorProxy.cs" />

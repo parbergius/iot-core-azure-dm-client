@@ -32,6 +32,12 @@ namespace Microsoft.Devices.Management
             this.deviceClient = deviceClient;
         }
 
+        async Task<TwinCollection> IDeviceTwin.GetDesiredPropertiesAsync()
+        {
+            var azureCollection = await this.deviceClient.GetTwinAsync().AsAsyncOperation<Twin>();
+            return azureCollection.Properties.Desired;
+        }
+
         void IDeviceTwin.ReportProperties(Dictionary<string, object> collection)
         {
             TwinCollection azureCollection = new TwinCollection();

@@ -55,19 +55,19 @@ namespace Microsoft.Devices.Management
         }
 
         private DeviceManagementClient(IDeviceTwin deviceTwin, IDeviceManagementRequestHandler requestHandler,
-            ISystemConfiguratorProxy systemConfiguratorProxy, IIotStartupProxy iotStartupProxy, IDevicePortalCoreApiProxy devicePortalCoreApiProxy)
+            ISystemConfiguratorProxy systemConfiguratorProxy, ICommandLineProxy commandLineProxy, IDevicePortalCoreApiProxy devicePortalCoreApiProxy)
         {
             this._deviceTwin = deviceTwin;
             this._requestHandler = requestHandler;
             this._systemConfiguratorProxy = systemConfiguratorProxy;
-            this._iotStartupProxy = iotStartupProxy;
+            this._commandLineProxy = commandLineProxy;
             this._devicePortalCoreApiProxy = devicePortalCoreApiProxy;
             this._externalStorage = new ExternalStorage();
         }
 
         public static async Task<DeviceManagementClient> CreateAsync(IDeviceTwin deviceTwin, IDeviceManagementRequestHandler requestHandler)
         {
-            DeviceManagementClient deviceManagementClient = Create(deviceTwin, requestHandler, new SystemConfiguratorProxy(), new IotStartupProxy(), new DevicePortalCoreApiProxy());
+            DeviceManagementClient deviceManagementClient = Create(deviceTwin, requestHandler, new SystemConfiguratorProxy(), new CommandLineProxy(), new DevicePortalCoreApiProxy());
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.immediateReboot", deviceManagementClient.ImmediateRebootMethodHandlerAsync);
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.appInstall", deviceManagementClient.AppInstallMethodHandlerAsync);
             await deviceTwin.SetMethodHandlerAsync("microsoft.management.reportAllDeviceProperties", deviceManagementClient.ReportAllDevicePropertiesMethodHandler);
@@ -82,7 +82,7 @@ namespace Microsoft.Devices.Management
         }
 
         internal static DeviceManagementClient Create(IDeviceTwin deviceTwin, IDeviceManagementRequestHandler requestHandler,
-            ISystemConfiguratorProxy systemConfiguratorProxy, IIotStartupProxy iotStartupProxy, IDevicePortalCoreApiProxy devicePortalCoreApiProxy)
+            ISystemConfiguratorProxy systemConfiguratorProxy, ICommandLineProxy iotStartupProxy, IDevicePortalCoreApiProxy devicePortalCoreApiProxy)
         {
             return new DeviceManagementClient(deviceTwin, requestHandler, systemConfiguratorProxy, iotStartupProxy, devicePortalCoreApiProxy);
         }
@@ -109,8 +109,8 @@ namespace Microsoft.Devices.Management
 
         internal async Task<string> ListAppsHandlerAsync(string jsonParam)
         {
-            var getAppsTask = this._iotStartupProxy.SendCommandAsync(IotStartupCommands.List);
-            var getStartupsTask = this._iotStartupProxy.SendCommandAsync(IotStartupCommands.Startup);
+            var getAppsTask = this._commandLineProxy.IotStartup(IotStartupCommands.List);
+            var getStartupsTask = this._commandLineProxy.IotStartup(IotStartupCommands.Startup);
             var getAppDetailsTask = this._systemConfiguratorProxy.SendCommandAsync(new Message.ListAppsRequest());
             var getProcessesTask = this._devicePortalCoreApiProxy.GetModernApplicationProcesses();
 
@@ -520,7 +520,7 @@ namespace Microsoft.Devices.Management
             return Task.FromResult(JsonConvert.SerializeObject(response));
         }
 
-        private static async void ProcessDesiredCertificateConfiguration(
+        private static async Task ProcessDesiredCertificateConfiguration(
             DeviceManagementClient client,
             string connectionString,
             string containerName,
@@ -529,7 +529,7 @@ namespace Microsoft.Devices.Management
 
             await IoTDMClient.CertificateManagement.DownloadCertificates(client, connectionString, containerName, certificateConfiguration);
             var request = new Message.SetCertificateConfigurationRequest(certificateConfiguration);
-            client._systemConfiguratorProxy.SendCommandAsync(request);
+            await client._systemConfiguratorProxy.SendCommandAsync(request);            
         }
 
         public async Task AllowReboots(bool allowReboots)
@@ -558,7 +558,7 @@ namespace Microsoft.Devices.Management
                         foreach (var managementProperty in managementNode.Children().OfType<JProperty>())
                         {
                             switch (managementProperty.Name)
-                            {
+                            {                               
                                 case "scheduledReboot":
                                     if (managementProperty.Value.Type == JTokenType.Object)
                                     {
@@ -751,7 +751,7 @@ namespace Microsoft.Devices.Management
 
         // Data members
         ISystemConfiguratorProxy _systemConfiguratorProxy;
-        IIotStartupProxy _iotStartupProxy;
+        ICommandLineProxy _commandLineProxy;
         IDevicePortalCoreApiProxy _devicePortalCoreApiProxy;
         IDeviceManagementRequestHandler _requestHandler;
         IDeviceTwin _deviceTwin;
