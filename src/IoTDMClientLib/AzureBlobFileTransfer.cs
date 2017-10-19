@@ -19,6 +19,7 @@ using Microsoft.WindowsAzure.Storage.Blob;
 using System;
 using System.Threading.Tasks;
 using Windows.Storage;
+using System.Linq;
 
 namespace IoTDMClient
 {
@@ -29,8 +30,9 @@ namespace IoTDMClient
         public string BlobName { get; set; }
 
         public async Task<string> DownloadToTempAsync(DeviceManagementClient client)
-        {
-            var path = DMGarbageCollector.TempFolder + BlobName;
+        {   
+            var path = DMGarbageCollector.TempFolder + BlobName.Split('/', '\\').LastOrDefault(); ;
+
             var info = new AzureFileTransferInfo()
             {
                 ConnectionString = ConnectionString,
@@ -38,7 +40,7 @@ namespace IoTDMClient
                 BlobName = BlobName,
                 Upload = false,
 
-                LocalPath = path
+                LocalPath = path,                
             };
 
             await AzureBlobFileTransfer.TransferFileAsync(info, client);
@@ -95,7 +97,8 @@ namespace IoTDMClient
             // C++ Azure Blob SDK not supported for ARM, so use Service to copy file to/from
             // App's LocalData and then use C# Azure Blob SDK to transfer
             //
-            var appLocalDataFile = await ApplicationData.Current.TemporaryFolder.CreateFileAsync(transferInfo.BlobName, CreationCollisionOption.ReplaceExisting);
+            var appLocalDataFilename = transferInfo.LocalPath.Split('\\').LastOrDefault();            
+            var appLocalDataFile = await ApplicationData.Current.TemporaryFolder.CreateFileAsync(appLocalDataFilename, CreationCollisionOption.ReplaceExisting);
             transferInfo.AppLocalDataPath = appLocalDataFile.Path;
 
             if (!transferInfo.Upload)
