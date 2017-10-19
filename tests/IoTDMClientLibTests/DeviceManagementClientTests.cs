@@ -37,8 +37,9 @@ namespace IoTDMClientLibTests
             throw new NotImplementedException();
         }
 
-        void IDeviceTwin.ReportProperties(Dictionary<string, object> collection)
+        Task IDeviceTwin.ReportProperties(Dictionary<string, object> collection)
         {
+            return null;
         }
 
         Task IDeviceTwin.SetMethodHandlerAsync(string methodName, Func<string, Task<string>> methodHandler)

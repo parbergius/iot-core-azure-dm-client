@@ -25,9 +25,10 @@ namespace Microsoft.Devices.Management
         {
         }
 
-        void IDeviceTwin.ReportProperties(Dictionary<string, object> collection)
+        Task IDeviceTwin.ReportProperties(Dictionary<string, object> collection)
         {
             // Somehow send the property to the DT
+            return null;
         }
 
         void IDeviceTwin.RefreshConnection()

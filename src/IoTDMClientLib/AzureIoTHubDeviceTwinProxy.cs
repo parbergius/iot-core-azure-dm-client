@@ -38,14 +38,14 @@ namespace Microsoft.Devices.Management
             return azureCollection.Properties.Desired;
         }
 
-        void IDeviceTwin.ReportProperties(Dictionary<string, object> collection)
+        async Task IDeviceTwin.ReportProperties(Dictionary<string, object> collection)
         {
             TwinCollection azureCollection = new TwinCollection();
             foreach (KeyValuePair<string, object> p in collection)
             {
                 azureCollection[p.Key] = p.Value;
             }
-            this.deviceClient.UpdateReportedPropertiesAsync(azureCollection);
+            await this.deviceClient.UpdateReportedPropertiesAsync(azureCollection);
         }
 
         Task IDeviceTwin.SetMethodHandlerAsync(string methodName, Func<string, Task<string>> methodHandler)

@@ -25,7 +25,7 @@ namespace Microsoft.Devices.Management
     // The DM only needs an ability to send reported properties to DT
     public interface IDeviceTwin
     {
-        void ReportProperties(Dictionary<string, object> collection);
+        Task ReportProperties(Dictionary<string, object> collection);
 
         Task SetMethodHandlerAsync(string methodName, Func<string, Task<string>> methodHandler);
 

@@ -734,7 +734,8 @@ namespace Microsoft.Devices.Management
                 management = new
                 {
                     timeInfo = timeInfoResponse,
-                    certificates = certificateConfigurationResponse,
+                    // ToDo: If this is included in Twin the UpdateReportedPropertiesAsync will throw an exception (status 400)
+                    //certificates = certificateConfigurationResponse,
                     rebootInfo = rebootInfoResponse,
                     deviceInfo = deviceInfoResponse,
                     windowsUpdatePolicy = windowsUpdatePolicyResponse.configuration,
@@ -742,7 +743,7 @@ namespace Microsoft.Devices.Management
                 }
             };
 
-            _deviceTwin.ReportProperties(collection);
+            await _deviceTwin.ReportProperties(collection);
         }
 
         private async Task<string> ReportAllDevicePropertiesMethodHandler(string jsonParam)
