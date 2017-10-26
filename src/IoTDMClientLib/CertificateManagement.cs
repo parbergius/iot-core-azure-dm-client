@@ -42,13 +42,13 @@ namespace IoTDMClient
 
         private static void MergeCertificateFileNames(string hashesString, HashSet<string> certificateFilesSet)
         {
-            char separator = '/';
+            char[] separators = new char[] { ',' };
 
             if (String.IsNullOrEmpty(hashesString))
             {
                 return;
             }
-            string[] hashes = hashesString.Split(separator);
+            string[] hashes = hashesString.Split(separators);
             certificateFilesSet.UnionWith(hashes);
         }
 

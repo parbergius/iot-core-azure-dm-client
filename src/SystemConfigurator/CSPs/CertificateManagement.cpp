@@ -32,15 +32,18 @@ void CertificateManagement::SyncCertificates(const std::wstring& path, const std
     Utils::SplitString(currentHashes, L'/', currentHashesVector);
 
     vector<wstring> desiredCertificateFilesVector;
-    Utils::SplitString(desiredCertificateFiles, L'/', desiredCertificateFilesVector);
+    Utils::SplitString(desiredCertificateFiles, L',', desiredCertificateFilesVector);
 
     // Loading desired certificates info...
     TRACE(L"Loading desired certificates info...");
     vector<CertificateFileInfo> desiredCertificates;
     for (const wstring& desiredCertificateFile : desiredCertificateFilesVector)
     {
+		vector<wstring> pathPartVector;
+		Utils::SplitString(desiredCertificateFile, L'/', pathPartVector);
+
         //wstring fullFileName = wstring(SC_CLEANUP_FOLDER) + L"\\" + desiredCertificateFile;
-		wstring fullFileName = wstring(SC_CLEANUP_FOLDER) + desiredCertificateFile;
+		wstring fullFileName = wstring(SC_CLEANUP_FOLDER) + pathPartVector.back();
         TRACEP(L"Reading: ", fullFileName.c_str());
         desiredCertificates.push_back(CertificateFileInfo(fullFileName));
     }

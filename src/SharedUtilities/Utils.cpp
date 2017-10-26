@@ -748,7 +748,7 @@ namespace Utils
             throw new DMException("Error: cannot convert binary stream to base64.");
         }
 
-        return wstring(destinationBuffer.data(), destinationBuffer.size());
+        return wstring(destinationBuffer.data(), destinationBuffer.size() -1);
     }
 
     wstring FileToBase64(const wstring& fileName)
