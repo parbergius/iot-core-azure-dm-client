@@ -31,9 +31,10 @@ namespace Microsoft.Devices.Management
             return null;
         }
 
-        void IDeviceTwin.RefreshConnection()
+        Task IDeviceTwin.RefreshConnectionAsync()
         {
             // Reconnect if needed
+            return null;
         }
 
         Task IDeviceTwin.SetMethodHandlerAsync(string methodName, Func<string, Task<string>> methodHandler)

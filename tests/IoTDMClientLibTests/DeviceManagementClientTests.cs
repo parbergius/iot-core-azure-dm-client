@@ -32,7 +32,7 @@ namespace IoTDMClientLibTests
             throw new NotImplementedException();
         }
 
-        void IDeviceTwin.RefreshConnection()
+        Task IDeviceTwin.RefreshConnectionAsync()
         {
             throw new NotImplementedException();
         }

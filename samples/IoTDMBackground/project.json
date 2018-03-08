@@ -1,15 +1,15 @@
 ﻿{
   "dependencies": {
     "EnterpriseLibrary.TransientFaultHandling": "6.0.1304",
-    "Microsoft.Extensions.Logging": "1.1.0",
-    "Microsoft.Extensions.Logging.Abstractions": "1.1.0",
+    "Microsoft.Extensions.Logging": "1.1.1",
+    "Microsoft.Extensions.Logging.Abstractions": "1.1.1",
     "Microsoft.NETCore.UniversalWindowsPlatform": "5.2.2",
     "Microsoft.VisualStudio.Threading": "14.1.131",
     "Newtonsoft.Json": "9.0.1",
     "PCLCrypto": "2.0.147"
   },
   "frameworks": {
-    "uap10.0": {}
+    "uap10.0.14393": {}
   },
   "runtimes": {
     "win10-arm": {},
