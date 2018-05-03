@@ -97,6 +97,7 @@
     <Compile Include="AppxManagement.cs" />
     <Compile Include="AzureBlobFileTransfer.cs" />
     <Compile Include="AzureIoTHubDeviceTwinProxy.cs" />
+    <Compile Include="Logger.cs" />
     <Compile Include="ScreenCaptureClient.cs" />
     <Compile Include="CertificateManagement.cs" />
     <Compile Include="DeviceManagementClient.cs" />

@@ -29,20 +29,22 @@ namespace Microsoft.Devices.Management
     public class AzureIoTHubDeviceTwinProxy : IDeviceTwin
     {
         DeviceClient deviceClient;
+        Logger logger;
 
         public delegate Task ResetConnectionAsync(DeviceClient existingClient);
         ResetConnectionAsync resetConnectionAsyncHandler;
 
-        public AzureIoTHubDeviceTwinProxy(DeviceClient deviceClient, ResetConnectionAsync resetConnectionAsyncHandler)
+        public AzureIoTHubDeviceTwinProxy(DeviceClient deviceClient, ResetConnectionAsync resetConnectionAsyncHandler, Logger logger)
         {
             this.deviceClient = deviceClient;
             this.resetConnectionAsyncHandler = resetConnectionAsyncHandler;
+            this.logger = logger;
 
             this.deviceClient.SetConnectionStatusChangesHandler(async (ConnectionStatus status, ConnectionStatusChangeReason reason) =>
             {
                 string msg = "Connection changed: " + status.ToString() + " " + reason.ToString();
                 System.Diagnostics.Debug.WriteLine(msg);
-                //logAsyncHandler?.Invoke(msg, LoggingLevel.Verbose);
+                this.logger.LogInformation(msg);                
 
                 switch (reason)
                 {
@@ -84,12 +86,12 @@ namespace Microsoft.Devices.Management
             }
             catch (IotHubCommunicationException e)
             {
-                //logAsyncHandler?.Invoke(e.ToString(), LoggingLevel.Error);
+                this.logger.LogException(e.Message, e);                
                 await InternalRefreshConnectionAsync();
             }
             catch (Exception e)
             {
-                //logAsyncHandler?.Invoke(e.ToString(), LoggingLevel.Error);
+                this.logger.LogException(e.Message, e);
             }
 
             return null;
@@ -97,7 +99,7 @@ namespace Microsoft.Devices.Management
 
         async Task IDeviceTwin.ReportProperties(Dictionary<string, object> collection)
         {
-            //Logger.Log("AzureIoTHubDeviceTwinProxy.ReportProperties", LoggingLevel.Information);
+            this.logger.LogInformation("AzureIoTHubDeviceTwinProxy.ReportProperties");
 
             TwinCollection azureCollection = new TwinCollection();
             foreach (KeyValuePair<string, object> p in collection)
@@ -108,7 +110,7 @@ namespace Microsoft.Devices.Management
                     JObject jObject = (JObject)p.Value;
                     foreach (JProperty property in jObject.Children())
                     {
-                        //Logger.Log("    Reporting: " + property.Name, LoggingLevel.Information);
+                        this.logger.LogInformation("    Reporting: " + property.Name);
                     }
                 }
                 azureCollection[p.Key] = p.Value;
@@ -120,18 +122,18 @@ namespace Microsoft.Devices.Management
             }
             catch (IotHubCommunicationException e)
             {
-                //logAsyncHandler?.Invoke(e.ToString(), LoggingLevel.Error);
+                this.logger.LogException(e.Message, e);                
                 await InternalRefreshConnectionAsync();
             }
             catch (Exception e)
             {
-                //logAsyncHandler?.Invoke(e.ToString(), LoggingLevel.Error);
+                this.logger.LogException(e.Message, e);
             }
         }
 
         async Task IDeviceTwin.SetMethodHandlerAsync(string methodName, Func<string, Task<string>> methodHandler)
-        {            
-            //Logger.Log("AzureIoTHubDeviceTwinProxy.SetMethodHandlerAsync", LoggingLevel.Information);
+        {
+            this.logger.LogInformation($"AzureIoTHubDeviceTwinProxy.SetMethodHandlerAsync ({methodName})");
 
             try
             {
@@ -143,12 +145,12 @@ namespace Microsoft.Devices.Management
             }
             catch (IotHubCommunicationException e)
             {
-                //logAsyncHandler?.Invoke(e.ToString(), LoggingLevel.Error);
+                this.logger.LogException(e.Message, e);
                 await InternalRefreshConnectionAsync();
             }
             catch (Exception e)
             {
-                //logAsyncHandler?.Invoke(e.ToString(), LoggingLevel.Error);
+                this.logger.LogException(e.Message, e);
             }
         }
 
@@ -183,11 +185,11 @@ namespace Microsoft.Devices.Management
                 }
                 catch (IotHubCommunicationException e)
                 {
-                    // logAsyncHandler?.Invoke(e.ToString(), LoggingLevel.Error);
+                    this.logger.LogException(e.Message, e);
                 }
                 catch (Exception e)
                 {
-                    //logAsyncHandler?.Invoke(e.ToString(), LoggingLevel.Error);
+                    this.logger.LogException(e.Message, e);
                 }
                 await Task.Delay(5 * 60 * 1000);
             }
